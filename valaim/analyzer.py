@@ -113,7 +113,15 @@ def analyze_sessions(sessions: list[dict], dpi: float, sensitivity: float) -> di
             pool = [loose]
 
     micro_over = _collect(pool, "micro_flicks", "overshoot_deg")
-    micro_under = _collect(pool, "micro_flicks", "undershoot_deg")
+    micro_under = []
+    for kinds in pool:
+        for shot in (kinds.get("micro_flicks") or {}).get("shots") or []:
+            if shot.get("hit"):
+                continue
+            if shot.get("error_at_click_deg") is not None:
+                micro_under.append(float(shot["error_at_click_deg"]))
+            elif shot.get("undershoot_deg") is not None:
+                micro_under.append(float(shot["undershoot_deg"]))
     micro_eff = _collect(pool, "micro_flicks", "path_efficiency")
     micro_rev = _collect(pool, "micro_flicks", "near_target_reversals")
     micro_hits = [
@@ -165,11 +173,14 @@ def analyze_sessions(sessions: list[dict], dpi: float, sensitivity: float) -> di
     # Com tracking já bom, um lag alto é falha do medidor, não sens baixa.
     slow_reverse = s_lag is not None and s_lag >= 180.0 and (s_tot is None or s_tot < 50.0)
     tremor = m_rev >= 3.0 and (m_eff is None or m_eff < 0.88)
-    already_good = (m_acc or 0.0) >= 65.0 and (s_tot or 0.0) >= 55.0 and overshoot_signal < 0.6
+    # Micro preciso e sem passar do alvo: não sobe a sens por causa do tracking.
+    already_good = (m_acc or 0.0) >= 68.0 and overshoot_signal < 0.45
 
     if already_good and not (high_over and low_eff):
         adjust = 0.0
-        reasons.append("acerto no micro e tempo no alvo do tracking já estão bons; não há motivo para mudar a escala")
+        reasons.append(
+            "o micro já acerta e quase não passa do alvo; tracking mais baixo se treina, não se resolve subindo a sensibilidade"
+        )
     elif high_over and low_eff and not (high_under and slow_reverse):
         severity = min(1.0, ((overshoot_signal - 0.85) / 1.6 + (0.75 - (m_eff or 0.75)) / 0.25) / 2)
         adjust = -round(3.0 + severity * 5.0, 1)
@@ -316,8 +327,8 @@ def _report(
             f"- Tempo com a mira em cima do alvo no tracking: {_fmt(s_tot, '%')}.",
             f"- Tempo para virar junto com o alvo: {_fmt(s_lag, ' ms', 0)}.",
             *(
-                ["Os números de 'parou antes' e 'tempo para virar' não mudam a decisão quando o acerto e o tempo no alvo já estão bons."]
-                if "já estão bons" in because
+                ["Subir a sensibilidade agora pioraria o micro. Repete o tracking se quiser mais tempo em cima do alvo."]
+                if "não se resolve subindo" in because
                 else []
             ),
             *([wide_line] if wide_line else []),

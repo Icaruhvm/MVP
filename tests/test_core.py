@@ -97,18 +97,18 @@ class AnalyzerTests(unittest.TestCase):
         self.assertIn("eDPI", result["report"])
 
     def test_low_sens_recommends_increase(self) -> None:
-        micro = _shot(overshoot_deg=0.1, undershoot_deg=1.6, path_efficiency=0.93)
-        wide = _shot(initial_angle_deg=50, overshoot_deg=0.2, undershoot_deg=2.2, path_efficiency=0.9)
+        micro = _shot(overshoot_deg=0.2, undershoot_deg=1.6, path_efficiency=0.7, hit=False)
+        wide = _shot(initial_angle_deg=50, overshoot_deg=0.2, undershoot_deg=2.2, path_efficiency=0.9, hit=False)
         sessions = []
         for i in range(3):
-            sessions.extend(_battery(0.30, f"c{i}", micro, {"lag": 180, "tot": 40}, wide))
+            sessions.extend(_battery(0.30, f"c{i}", micro, {"lag": 180, "tot": 30}, wide))
         result = analyze_sessions(sessions, 400, 0.30)
         self.assertGreater(result["adjust_percent"], 0)
         self.assertGreater(result["recommended_sensitivity"], 0.30)
 
     def test_good_scores_do_not_ask_for_another_increase(self) -> None:
-        micro = _shot(overshoot_deg=0.08, undershoot_deg=2.8, path_efficiency=0.89, hit=True)
-        sessions = _battery(0.324, "done", micro, {"lag": 896, "tot": 74.7})
+        micro = _shot(overshoot_deg=0.08, undershoot_deg=1.7, path_efficiency=0.89, hit=True)
+        sessions = _battery(0.324, "done", micro, {"lag": 534, "tot": 49.0})
         result = analyze_sessions(sessions, 400, 0.324)
         self.assertEqual(result["adjust_percent"], 0.0)
         self.assertEqual(result["recommended_sensitivity"], 0.324)
