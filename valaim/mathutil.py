@@ -170,12 +170,16 @@ class FlickTracker:
         speed = step_len / dt if dt > 1e-5 else 0.0
         if self.moved:
             self._seen_motion = True
+        progressed = 0.0
+        if self.e0_len > 1e-4:
+            progressed = (self.e0_len - length2(error)) / self.e0_len
         if (
             self._seen_motion
             and self.first_stop_undershoot is None
             and self.reaction_ms is not None
             and elapsed_ms > self.reaction_ms + 35.0
             and speed < 18.0
+            and progressed >= 0.45
         ):
             self.first_stop_undershoot = length2(error)
         if step_len > 0.004:
@@ -188,9 +192,12 @@ class FlickTracker:
         efficiency = 1.0
         if self.path > 1e-4:
             efficiency = clamp(self.e0_len / self.path, 0.0, 1.0)
-        undershoot = self.first_stop_undershoot
-        if undershoot is None:
-            undershoot = err if self.max_overshoot < 0.25 else 0.0
+        # Acerto zera o undershoot. Um clique fora mede o que faltou naquele instante,
+        # não a primeira desaceleração (micro-flick é lento e isso inflava o número).
+        if hit:
+            undershoot = 0.0
+        else:
+            undershoot = err
         return {
             "initial_angle_deg": round(self.e0_len, 4),
             "reaction_ms": None if self.reaction_ms is None else round(self.reaction_ms, 2),

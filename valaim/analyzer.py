@@ -161,10 +161,16 @@ def analyze_sessions(sessions: list[dict], dpi: float, sensitivity: float) -> di
     high_over = overshoot_signal >= 0.85
     low_eff = m_eff is not None and m_eff < 0.75
     high_under = undershoot_signal >= 0.85
-    slow_reverse = s_lag is not None and s_lag >= 110.0
+    # Atraso só conta se a mira também ficou pouco tempo no alvo.
+    # Com tracking já bom, um lag alto é falha do medidor, não sens baixa.
+    slow_reverse = s_lag is not None and s_lag >= 180.0 and (s_tot is None or s_tot < 50.0)
     tremor = m_rev >= 3.0 and (m_eff is None or m_eff < 0.88)
+    already_good = (m_acc or 0.0) >= 65.0 and (s_tot or 0.0) >= 55.0 and overshoot_signal < 0.6
 
-    if high_over and low_eff and not (high_under and slow_reverse):
+    if already_good and not (high_over and low_eff):
+        adjust = 0.0
+        reasons.append("acerto no micro e tempo no alvo do tracking já estão bons; não há motivo para mudar a escala")
+    elif high_over and low_eff and not (high_under and slow_reverse):
         severity = min(1.0, ((overshoot_signal - 0.85) / 1.6 + (0.75 - (m_eff or 0.75)) / 0.25) / 2)
         adjust = -round(3.0 + severity * 5.0, 1)
         reasons.append(
@@ -309,6 +315,11 @@ def _report(
             f"- Movimento em linha reta: {straight}. 100% seria um gesto reto, sem tremor.",
             f"- Tempo com a mira em cima do alvo no tracking: {_fmt(s_tot, '%')}.",
             f"- Tempo para virar junto com o alvo: {_fmt(s_lag, ' ms', 0)}.",
+            *(
+                ["Os números de 'parou antes' e 'tempo para virar' não mudam a decisão quando o acerto e o tempo no alvo já estão bons."]
+                if "já estão bons" in because
+                else []
+            ),
             *([wide_line] if wide_line else []),
             "",
             status,

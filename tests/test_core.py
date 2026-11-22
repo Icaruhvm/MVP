@@ -106,6 +106,13 @@ class AnalyzerTests(unittest.TestCase):
         self.assertGreater(result["adjust_percent"], 0)
         self.assertGreater(result["recommended_sensitivity"], 0.30)
 
+    def test_good_scores_do_not_ask_for_another_increase(self) -> None:
+        micro = _shot(overshoot_deg=0.08, undershoot_deg=2.8, path_efficiency=0.89, hit=True)
+        sessions = _battery(0.324, "done", micro, {"lag": 896, "tot": 74.7})
+        result = analyze_sessions(sessions, 400, 0.324)
+        self.assertEqual(result["adjust_percent"], 0.0)
+        self.assertEqual(result["recommended_sensitivity"], 0.324)
+
     def test_single_battery_is_provisional(self) -> None:
         micro = _shot()
         sessions = _battery(0.35, "only", micro, {"lag": 50, "tot": 70})

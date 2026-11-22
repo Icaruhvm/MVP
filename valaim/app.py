@@ -212,7 +212,7 @@ class StrafeTracking:
         self._last_hx = hx
         if self.pending_ms is not None:
             self.pending_ms += dt * 1000.0
-            if self.cam.yaw_rate * self.need_sign > 30.0:
+            if on_target or self.cam.yaw_rate * self.need_sign > 8.0:
                 self.lags.append(self.pending_ms)
                 self.pending_ms = None
         if clicked:
