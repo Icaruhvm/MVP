@@ -29,9 +29,17 @@ class Viewmodel:
         self.pitch_vel = 0.0
         self.slide = 0.0
         self.flash = 0.0
+        self.rest: pygame.Surface | None = None
+        self.back: pygame.Surface | None = None
+        self._ready = False
+        self._scaled: dict[tuple[int, int], pygame.Surface] = {}
+
+    def _ensure_loaded(self) -> None:
+        if self._ready or pygame.display.get_surface() is None:
+            return
         self.rest = _load("pistol.jpg")
         self.back = _load("pistol_slide.jpg")
-        self._scaled: dict[tuple[int, int], pygame.Surface] = {}
+        self._ready = True
 
     def kick(self) -> None:
         self.pitch_vel += 9.0
@@ -60,6 +68,7 @@ class Viewmodel:
         return cached
 
     def draw(self, screen: pygame.Surface) -> None:
+        self._ensure_loaded()
         width, height = screen.get_size()
         frame = self._frame(width)
         if frame is None:
