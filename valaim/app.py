@@ -252,23 +252,23 @@ class StrafeTracking:
 
 
 def _hit_sound() -> pygame.mixer.Sound | None:
-    """Estalo curto e agudo, com queda rápida. Sem arquivo externo."""
+    """Clique grave e curto. Sem harmônico agudo."""
     try:
         if not pygame.mixer.get_init():
             pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=256)
         rate = pygame.mixer.get_init()[0]
         channels = pygame.mixer.get_init()[2]
-        count = int(rate * 0.09)
+        count = int(rate * 0.04)
         samples = array.array("h")
         for i in range(count):
             t = i / rate
-            env = math.exp(-t * 36.0)
-            wave = 0.62 * math.sin(2 * math.pi * 988 * t) + 0.38 * math.sin(2 * math.pi * 1480 * t)
-            sample = int(max(-1.0, min(1.0, wave * env)) * 26000)
+            env = math.exp(-t * 90.0)
+            wave = math.sin(2.0 * math.pi * 160.0 * t) * env
+            sample = int(max(-1.0, min(1.0, wave)) * 7000)
             for _ in range(channels):
                 samples.append(sample)
         sound = pygame.mixer.Sound(buffer=samples.tobytes())
-        sound.set_volume(0.42)
+        sound.set_volume(0.2)
         return sound
     except pygame.error:
         return None
